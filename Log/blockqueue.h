@@ -16,8 +16,8 @@ class BlockQueue{
 		mutex mtx_;
 		bool isClose_;
 		size_t capacity_;
-		condition_variable condConsumer_;
-		condition_variable condProducer_;
+		condition_variable condConsumer_;		//消费者条件变量
+		condition_variable condProducer_;		  //生产者条件变量
 	public:
 		explicit BlockQueue(size_t maxsize = 1000);
 		~BlockQueue();
@@ -76,19 +76,19 @@ bool BlockQueue<T>::full(){
 
 template<typename T>
 void BlockQueue<T>::push_back(const T& item){
-	unique_lock<mutex> locker(mtx_);
-	while(deq_.size() >= capacity_){
-		condProducer_.wait(locker);
+	unique_lock<mutex> locker(mtx_);			
+	while(deq_.size() >= capacity_){				//生产队列满了，需要等待
+		condProducer_.wait(locker);					//暂停生产，等待消费者变量唤醒
 	}
 	deq_.push_back(item);
-	condConsumer_.notify_one();
+	condConsumer_.notify_one();						//唤醒消费者
 }
 
 template<typename T>
 void BlockQueue<T>::push_front(const T& item){
 	unique_lock<mutex> locker(mtx_);
-	while(deq_.empty()){
-		condConsumer_.wait(locker);
+	while(deq_.size() >= capacity_){
+		condProducer_.wait(locker);
 	}
 	deq_.push_front(item);
 	condConsumer_.notify_one();
@@ -133,6 +133,12 @@ template<typename T>
 T BlockQueue<T>:: back(){
 	lock_guard<mutex> locker(mtx_);
 	return deq_.back();
+}
+
+template<typename T>
+size_t BlockQueue<T>::capacity(){
+	lock_guard<mutex> locker(mtx_);
+	return capacity_;
 }
 
 template<typename T>
