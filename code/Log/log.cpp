@@ -181,3 +181,7 @@ void Log::SetLevel(int level){
     lock_guard<mutex> locker(mtx_);
     level_=level;
 }
+
+void Log::FlushLogThread() {
+    Log::Instance()->AsyncWrite_();
+}
